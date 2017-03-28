@@ -1,0 +1,39 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=NDVIST
+qgisMinimumVersion=2.0
+description=The NDVIST plugin lets you create a point grid that includes NDVI values for Istanbul.
+version=0.1
+author=Serhat YILMAZTURK
+email=serhat@yilmazturk.info
+
+about=The normalized difference vegetation index (NDVI) is a simple graphical indicator that assess whether the target being observed contains live green vegetation or not. The plugin acquires NDVI data computed from Sentinel-2 satellite imagery via a RESTful web service, generates point grid for the given area of interest (AOI) and specified point interval and assigns fetched NDVI values for each point. Sentinel-2 images which cover Istanbul, Turkey are used for determining NDVI. Therefore, AOI should be defined in Istanbul province.
+
+tracker=https://github.com/syilmazturk/NDVIST
+repository=https://github.com/syilmazturk/NDVIST
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=analysis, ecology, remote sensing, webservice
+
+homepage=https://github.com/syilmazturk/NDVIST
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+

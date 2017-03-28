@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/plugins/NDVIST">
+    <file>logo-esa.png</file>
+    <file>logo-tufuab.png</file>
+    <file>icon.png</file>
+  </qresource>
+</RCC>
