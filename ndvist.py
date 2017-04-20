@@ -35,6 +35,7 @@ from numpy import arange
 import itertools
 import urllib2
 import json
+import time
 from ndvist_dialog import NDVISTDialog
 import os.path
 
@@ -228,56 +229,73 @@ class NDVIST:
         self.ui.show()
 
     def plot_grid(self):
-        point_interval = self.dlg.lineEdit_interval.text()
-        latlist = list(arange(sw_lat['0'], ne_lat['0'], float(point_interval)))
-        lnglist = list(arange(sw_lng['0'], ne_lng['0'], float(point_interval)))
+        try:
+            point_interval = self.dlg.lineEdit_interval.text()
+            if ',' in point_interval:
+                iface.messageBar().pushMessage(u"Warning: ", "Please use point (.) as separator",
+                                               level=QgsMessageBar.WARNING, duration=3)
+            else:
+                start_time = time.time()
 
-        msgBox = QMessageBox()
-        msgBox.setWindowTitle('Info')
-        message = "%s points will be generated. Continue?" % str(len(list(itertools.product(latlist, lnglist))))
-        msgBox.setText(message)
-        msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        pop = msgBox.exec_()
+                latlist = list(arange(sw_lat['0'], ne_lat['0'], float(point_interval)))
+                lnglist = list(arange(sw_lng['0'], ne_lng['0'], float(point_interval)))
 
-        if pop == QMessageBox.Yes:
-            url = "http://universal-syilmazturk.rhcloud.com/ndvist/aoicheck/%f/%f/%f/%f" % (sw_lng['0'], sw_lat['0'],
-                                                                                            ne_lng['0'], ne_lat['0'])
-            req = urllib2.Request(url, None)
-            response = urllib2.urlopen(req)
-            data = json.load(response)
-            aoi_status = data[0]['status']
-            if aoi_status == 'inAOI':
-                layer_name = 'grid_'
-                coord_pairs = []
-                memory_layer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
-                memory_layer.startEditing()
-                provider = memory_layer.dataProvider()
-                provider.addAttributes([QgsField("NDVI_VALUE", QVariant.Double),
-                                        QgsField("DATE", QVariant.Double)])
-                sentinel_date_full = self.dlg.comboBox_date.currentText()
-                sentinel_date_id = sentinel_dates[sentinel_date_full]
+                msgBox = QMessageBox()
+                msgBox.setWindowTitle('Info')
+                message = "%s points will be generated. Continue?" % str(len(list(itertools.product(latlist, lnglist))))
+                msgBox.setText(message)
+                msgBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                pop = msgBox.exec_()
 
-                for i in itertools.product(latlist, lnglist):
-                    url = "http://universal-syilmazturk.rhcloud.com/ndvist/ndvivalue/%f/%f/%s" % (i[1], i[0],
-                                                                                                  sentinel_date_id)
+                if pop == QMessageBox.Yes:
+                    url = "http://universal-syilmazturk.rhcloud.com/ndvist/aoicheck/%f/%f/%f/%f" % (sw_lng['0'], sw_lat['0'],
+                                                                                                    ne_lng['0'], ne_lat['0'])
                     req = urllib2.Request(url, None)
                     response = urllib2.urlopen(req)
                     data = json.load(response)
+                    aoi_status = data[0]['status']
+                    if aoi_status == 'inAOI':
+                        sentinel_date_full = self.dlg.comboBox_date.currentText()
+                        sentinel_date_id = sentinel_dates[sentinel_date_full]
+                        layer_name = 'grid_NDVI_' + str(sentinel_date_id)
 
-                    geometry = QgsGeometry.fromPoint(QgsPoint(i[1], i[0]))
-                    feature = QgsFeature()
-                    feature.setGeometry(geometry)
-                    feature.setAttributes([data[0]['ndviValue'], sentinel_date_id])
-                    coord_pairs.append(feature)
+                        coord_pairs = []
+                        memory_layer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
+                        memory_layer.startEditing()
+                        provider = memory_layer.dataProvider()
+                        provider.addAttributes([QgsField("NDVI_VALUE", QVariant.Double),
+                                                QgsField("DATE", QVariant.Double)])
 
-                memory_layer.dataProvider().addFeatures(coord_pairs)
-                memory_layer.updateExtents()
-                memory_layer.commitChanges()
-                QgsMapLayerRegistry.instance().addMapLayer(memory_layer)
-            else:
-                iface.messageBar().pushMessage(u"Info: ", "out",
-                                               level=QgsMessageBar.SUCCESS, duration=5)
+                        for i in itertools.product(latlist, lnglist):
+                            url = "http://universal-syilmazturk.rhcloud.com/ndvist/ndvivalue/%f/%f/%s" % (i[1], i[0],
+                                                                                                          sentinel_date_id)
+                            req = urllib2.Request(url, None)
+                            response = urllib2.urlopen(req)
+                            data = json.load(response)
 
+                            geometry = QgsGeometry.fromPoint(QgsPoint(i[1], i[0]))
+                            feature = QgsFeature()
+                            feature.setGeometry(geometry)
+                            feature.setAttributes([data[0]['ndviValue'], sentinel_date_id])
+                            coord_pairs.append(feature)
+
+                        memory_layer.dataProvider().addFeatures(coord_pairs)
+                        memory_layer.updateExtents()
+                        memory_layer.commitChanges()
+                        QgsMapLayerRegistry.instance().addMapLayer(memory_layer)
+
+                        end_time = time.time()
+                        time_difference = end_time - start_time
+                        time_difference_rounded = "%.2f" % time_difference
+
+                        iface.messageBar().pushMessage(u"Info: ",
+                                                       str(time_difference_rounded) + " seconds have elapsed for " +
+                                                       str(len(list(itertools.product(latlist, lnglist)))) + " points.",
+                                                       level=QgsMessageBar.SUCCESS, duration=5)
+        except:
+            iface.messageBar().pushMessage(u"Error: ", u"Check your parameters, point interval value "
+                                                       u"and/or internet connection!",
+                                           level=QgsMessageBar.CRITICAL, duration=5)
 
     def run(self):
         """Run method that performs all the real work"""
